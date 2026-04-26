@@ -205,7 +205,7 @@ usst-e-fees poll-once --notify
 
 源码仓库：[Nitmi/usst-e-fees](https://github.com/Nitmi/usst-e-fees)
 
-维护者发布 GitHub Release 后，会由 GitHub Actions 自动构建并发布到 PyPI。
+维护者发布 GitHub Release 后，会由 GitHub Actions 自动构建并发布到 PyPI。首次发布前，需要先在 PyPI 为 `Nitmi/usst-e-fees` 配置 Trusted Publisher。
 
 ## 联系方式
 
