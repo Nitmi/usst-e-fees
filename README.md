@@ -1,141 +1,59 @@
 # usst-e-fees
 
-上海理工大学宿舍电费监测服务。它根据 WeLink 内宿舍管理系统的请求，定时查询宿舍插电照明和空调剩余电费；当电费低于配置阈值时发送通知。
+上海理工大学宿舍电费提醒工具。
 
-经过测试，当前使用的宿舍管理官方接口仅限校内网络访问。如果在校外网络、普通云服务器或未接入校园网/VPN 的环境运行，查询可能返回认证失败、连接失败或无法访问。
+它会定时查看宿舍照明电费和空调电费。余额低于你设置的金额时，会通过 Bark、Gotify、邮件或控制台提醒你。
 
-## 功能
+> 经过测试，学校宿舍电费接口目前只能在校内网络访问。请在校园网、宿舍网络、校内服务器，或可以访问校内资源的 VPN 环境运行。
 
-- 查询当前宿舍、照明电费/电量、空调电费/电量
-- 支持照明和空调分别设置提醒阈值
-- 支持 Bark、Gotify、邮件、控制台通知
-- 支持多个账号
-- 支持定时监控、告警冷却，避免重复刷屏
-- 支持从 Loon 抓包导入请求头
+## 能做什么
 
-## 快速开始
+- 查看当前宿舍电费和电量。
+- 照明电费、空调电费可以分别设置提醒金额。
+- 余额不足时自动提醒。
+- 支持 Bark 手机推送。
+- 支持多个账号。
+- 会自动避免短时间内重复提醒。
 
-开发环境运行：
+## 安装
+
+推荐使用 `uv`：
 
 ```bash
-uv sync
-uv run usst-e-fees --help
+uv tool install usst-e-fees
 ```
 
-安装为本机命令后，可以不加 `uv run` 直接调用：
+安装后检查命令是否可用：
+
+```bash
+usst-e-fees --help
+usst-e-fees version
+```
+
+如果是从源码安装：
 
 ```bash
 uv tool install --editable .
-usst-e-fees --help
 ```
 
-生成配置文件：
+## 第一次使用
+
+### 1. 生成配置文件
 
 ```bash
 usst-e-fees init-config
 usst-e-fees where
 ```
 
-从抓包导入凭据。推荐导入 `GetDormElectricityFees` 这条请求的 `request_header_raw.txt`：
-
-```bash
-usst-e-fees auth-import "D:\path\to\request_header_raw.txt"
-```
-
-长期监控还需要导入 WeLink 的授权码刷新请求头。请在 Loon 抓包里找到这条请求并导入它的 `request_header_raw.txt`：
+`where` 会显示配置文件位置。Windows 常见位置是：
 
 ```text
-POST https://api.welink.huaweicloud.com/mcloud/mag/ProxyForText/ssoauth/v1/code
+%LOCALAPPDATA%\usst-e-fees\config.yaml
 ```
 
-```bash
-usst-e-fees auth-import "D:\path\to\ssoauth_request_header_raw.txt"
-usst-e-fees auth-refresh
-```
+### 2. 配置提醒金额
 
-也可以手动保存：
-
-```bash
-usst-e-fees auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0" --welink-cookie "token=...;cdn_token=..."
-```
-
-测试查询：
-
-```bash
-usst-e-fees poll-once
-```
-
-带通知测试：
-
-```bash
-usst-e-fees notify-test
-usst-e-fees poll-once --notify
-```
-
-开始监控：
-
-```bash
-usst-e-fees watch
-```
-
-`watch` 会在余额低于阈值时直接发送通知，不需要额外加 `--notify`。`poll-once` 默认只查询并打印结果，只有加 `--notify` 时才会触发低余额通知。
-
-监控所有启用账号：
-
-```bash
-usst-e-fees watch --all
-```
-
-`watch --all` 同样自带通知能力，会对所有 `enabled: true` 的账号分别查询、分别按阈值判断并发送通知。
-
-## 运行模式
-
-### 单次查询
-
-```bash
-usst-e-fees poll-once
-```
-
-只查询当前账号并打印余额，不发送低余额通知。
-
-### 单次查询并通知
-
-```bash
-usst-e-fees poll-once --notify
-```
-
-查询当前账号；如果余额低于阈值，会通过配置的通知渠道提醒。
-
-### 后台监控
-
-```bash
-usst-e-fees watch
-```
-
-持续监控默认账号。低于阈值会自动通知。
-
-### 多账号后台监控
-
-```bash
-usst-e-fees watch --all
-```
-
-持续监控所有启用账号。低于阈值会自动通知，不需要也没有 `--notify` 参数。
-
-### 防重复通知
-
-同一账号的照明和空调分别记录通知状态。余额低于阈值后，默认每 6 小时最多提醒一次；余额恢复到阈值以上后，会清除低余额状态，并在配置允许时发送一次恢复通知。状态文件默认保存在配置目录下的 `state.json`。
-
-## 配置示例
-
-默认配置文件位置：
-
-| 系统 | 配置文件 |
-| --- | --- |
-| Windows | `%LOCALAPPDATA%\usst-e-fees\config.yaml` |
-| Linux / VPS | `~/.config/usst-e-fees/config.yaml` |
-
-阈值配置：
+打开配置文件，找到：
 
 ```yaml
 thresholds:
@@ -143,7 +61,14 @@ thresholds:
   aircon_money: 20.0
 ```
 
-Bark 通知：
+含义：
+
+- `lighting_money`：照明电费低于多少元时提醒。
+- `aircon_money`：空调电费低于多少元时提醒。
+
+### 3. 配置 Bark 推送
+
+如果你使用 Bark，打开配置文件，填入你的 Bark key：
 
 ```yaml
 notify:
@@ -151,9 +76,82 @@ notify:
     enabled: true
     server: https://api.day.app
     key: 你的 Bark key
+    group: USST E Fees
 ```
 
-多账号：
+测试通知：
+
+```bash
+usst-e-fees notify-test
+```
+
+### 4. 导入登录信息
+
+工具需要从已登录的 WeLink/宿舍电费页面请求中导入登录信息。
+
+用 Loon 抓包后，建议导入两条请求的 `request_header_raw.txt`：
+
+- 宿舍电费查询请求。
+- WeLink 授权刷新请求，路径里通常包含 `ssoauth/v1/code`。
+
+导入示例：
+
+```bash
+usst-e-fees auth-import "D:\path\to\dorm_request_header_raw.txt"
+usst-e-fees auth-import "D:\path\to\welink_sso_request_header_raw.txt"
+```
+
+导入后测试刷新登录信息：
+
+```bash
+usst-e-fees auth-refresh
+```
+
+如果以后提示登录失效，重新抓包并再次执行上面的 `auth-import`。
+
+## 查询和监控
+
+### 查询一次
+
+```bash
+usst-e-fees poll-once
+```
+
+这个命令只显示余额，不会发送低余额提醒。
+
+### 查询一次并提醒
+
+```bash
+usst-e-fees poll-once --notify
+```
+
+如果余额低于阈值，会发送提醒。
+
+### 持续监控
+
+```bash
+usst-e-fees watch
+```
+
+`watch` 会自动发送提醒，不需要加 `--notify`。
+
+### 监控所有账号
+
+```bash
+usst-e-fees watch --all
+```
+
+`watch --all` 也会自动发送提醒。它会监控配置文件中所有 `enabled: true` 的账号。
+
+## 防重复提醒
+
+默认情况下，同一账号的同一种电费 6 小时内最多提醒一次。
+
+例如空调电费一直低于阈值，工具不会每次检查都推送；等过了冷却时间才会再次提醒。余额恢复到阈值以上后，低余额状态会被清除。
+
+## 多账号
+
+可以在配置文件里添加多个账号：
 
 ```yaml
 accounts:
@@ -161,46 +159,53 @@ accounts:
     name: 我的账号
     enabled: true
     session_file: sessions/main.json
+
   - id: roommate
     name: 室友
     enabled: true
     session_file: sessions/roommate.json
 ```
 
-导入不同账号凭据：
+给不同账号导入登录信息：
 
 ```bash
-usst-e-fees auth-import ".\main_request_header_raw.txt" --account main
-usst-e-fees auth-import ".\roommate_request_header_raw.txt" --account roommate
+usst-e-fees auth-import "D:\path\to\main_request_header_raw.txt" --account main
+usst-e-fees auth-import "D:\path\to\roommate_request_header_raw.txt" --account roommate
 ```
 
-## 抓包接口来源
+监控所有账号：
 
-抓包中电费页面为：
-
-```text
-GET http://ssgl.usst.edu.cn/SSGL/StuMobile/StuView/VoucherCenter.html
+```bash
+usst-e-fees watch --all
 ```
 
-页面查询接口为：
+## 常见问题
 
-```text
-GET http://ssgl.usst.edu.cn/api/Voucher/GetDormElectricityFees?IsLoadData=false
+### `watch --all` 是否自带通知？
+
+是。`watch` 和 `watch --all` 都会在低于阈值时自动通知。
+
+### `poll-once` 会不会通知？
+
+默认不会。要通知请使用：
+
+```bash
+usst-e-fees poll-once --notify
 ```
 
-接口返回字段包括 `SurplusZMMoney`、`SurplusZM`、`SurplusKTMoney`、`SurplusKT`、`SSDZ`、`SSId` 等。
+### 为什么校外运行失败？
 
-WeLink 的 `x-hw-code` 和宿舍系统 Cookie 会过期；导入 `ssoauth/v1/code` 请求头后，工具会自动刷新 `x-hw-code` 和宿舍系统会话。如果 WeLink Cookie 也过期，再重新抓包并执行 `auth-import`。
+当前学校接口经测试仅限校内网络访问。校外运行请先确认当前机器可以访问校内宿舍管理系统。
 
-## 网络要求
+### 为什么过一段时间提示登录失效？
 
-当前接口来自上海理工大学宿舍管理系统：
+登录信息会过期。重新用 Loon 抓包并导入请求头即可。
 
-```text
-http://ssgl.usst.edu.cn
-```
+## 开发和发布
 
-经测试，该官方接口仅限校内网络访问。建议在校园网、宿舍网络、校内服务器，或可访问校内资源的 VPN 环境运行。Bark、Gotify、邮件通知渠道仍需运行环境能访问对应外部通知服务。
+源码仓库：[Nitmi/usst-e-fees](https://github.com/Nitmi/usst-e-fees)
+
+维护者发布 GitHub Release 后，会由 GitHub Actions 自动构建并发布到 PyPI。
 
 ## 联系方式
 

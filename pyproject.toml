@@ -24,6 +24,11 @@ classifiers = [
 ]
 keywords = ["usst", "dorm", "electricity", "fees", "cli", "notification"]
 
+[project.urls]
+Homepage = "https://github.com/Nitmi/usst-e-fees"
+Repository = "https://github.com/Nitmi/usst-e-fees"
+Issues = "https://github.com/Nitmi/usst-e-fees/issues"
+
 [project.scripts]
 usst-e-fees = "usst_e_fees.cli:main"
 
