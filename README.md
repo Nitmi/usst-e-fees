@@ -13,49 +13,56 @@
 
 ## 快速开始
 
-安装依赖并查看命令：
+开发环境运行：
 
 ```bash
 uv sync
 uv run usst-electricity --help
 ```
 
+安装为本机命令后，可以不加 `uv run` 直接调用：
+
+```bash
+uv tool install --editable .
+usst-electricity --help
+```
+
 生成配置文件：
 
 ```bash
-uv run usst-electricity init-config
-uv run usst-electricity where
+usst-electricity init-config
+usst-electricity where
 ```
 
 从抓包导入凭据。推荐导入 `GetDormElectricityFees` 这条请求的 `request_header_raw.txt`：
 
 ```bash
-uv run usst-electricity auth-import "D:\path\to\request_header_raw.txt"
+usst-electricity auth-import "D:\path\to\request_header_raw.txt"
 ```
 
 也可以手动保存：
 
 ```bash
-uv run usst-electricity auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0"
+usst-electricity auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0"
 ```
 
 测试查询：
 
 ```bash
-uv run usst-electricity poll-once
+usst-electricity poll-once
 ```
 
 带通知测试：
 
 ```bash
-uv run usst-electricity notify-test
-uv run usst-electricity poll-once --notify
+usst-electricity notify-test
+usst-electricity poll-once --notify
 ```
 
 开始监控：
 
 ```bash
-uv run usst-electricity watch
+usst-electricity watch
 ```
 
 ## 配置示例
@@ -102,14 +109,14 @@ accounts:
 导入不同账号凭据：
 
 ```bash
-uv run usst-electricity auth-import ".\main_request_header_raw.txt" --account main
-uv run usst-electricity auth-import ".\roommate_request_header_raw.txt" --account roommate
+usst-electricity auth-import ".\main_request_header_raw.txt" --account main
+usst-electricity auth-import ".\roommate_request_header_raw.txt" --account roommate
 ```
 
 监控所有启用账号：
 
 ```bash
-uv run usst-electricity watch --all
+usst-electricity watch --all
 ```
 
 ## 抓包接口来源
