@@ -26,20 +26,20 @@ from .state import StateStore
 from .watcher import build_status_body, low_balance_messages, watch
 
 
-app = typer.Typer(help="USST dorm electricity watcher.")
+app = typer.Typer(help="USST dorm electricity fees watcher.")
 console = Console()
 
 
 def package_version() -> str:
     try:
-        return metadata_version("usst-electricity")
+        return metadata_version("usst-e-fees")
     except PackageNotFoundError:
         return __version__
 
 
 def version_callback(value: bool) -> None:
     if value:
-        console.print(f"usst-electricity {package_version()}")
+        console.print(f"usst-e-fees {package_version()}")
         raise typer.Exit()
 
 
@@ -83,7 +83,7 @@ def where() -> None:
 
 @app.command("version")
 def version_command() -> None:
-    console.print(f"usst-electricity {package_version()}")
+    console.print(f"usst-e-fees {package_version()}")
 
 
 @app.command("accounts")
@@ -251,6 +251,6 @@ def watch_command(
 def main() -> None:
     app(
         obj={},
-        prog_name="usst-electricity",
+        prog_name="usst-e-fees",
         standalone_mode=True,
     )

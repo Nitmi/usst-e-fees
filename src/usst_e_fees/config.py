@@ -9,11 +9,11 @@ import yaml
 from pydantic import BaseModel, Field
 
 
-APP_NAME = "usst-electricity"
+APP_NAME = "usst-e-fees"
 
 
 def default_config_dir() -> Path:
-    env_path = os.environ.get("USST_ELECTRICITY_CONFIG_DIR")
+    env_path = os.environ.get("USST_E_FEES_CONFIG_DIR") or os.environ.get("USST_ELECTRICITY_CONFIG_DIR")
     if env_path:
         return Path(env_path).expanduser()
     local_app_data = os.environ.get("LOCALAPPDATA")

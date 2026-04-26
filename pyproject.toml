@@ -1,7 +1,7 @@
 [project]
-name = "usst-electricity"
+name = "usst-e-fees"
 version = "0.1.0"
-description = "USST dorm electricity watcher and notifier"
+description = "USST dorm electricity fees watcher and notifier"
 readme = "README.md"
 authors = [
     { name = "Nitmi", email = "0@123778.xyz" }
@@ -22,10 +22,10 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
 ]
-keywords = ["usst", "dorm", "electricity", "cli", "notification"]
+keywords = ["usst", "dorm", "electricity", "fees", "cli", "notification"]
 
 [project.scripts]
-usst-electricity = "usst_electricity.cli:main"
+usst-e-fees = "usst_e_fees.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]

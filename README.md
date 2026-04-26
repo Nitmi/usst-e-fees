@@ -1,4 +1,4 @@
-# usst-electricity
+# usst-e-fees
 
 上海理工大学宿舍电费监测服务。它根据 WeLink 内宿舍管理系统的请求，定时查询宿舍插电照明和空调剩余电费；当电费低于配置阈值时发送通知。
 
@@ -17,52 +17,52 @@
 
 ```bash
 uv sync
-uv run usst-electricity --help
+uv run usst-e-fees --help
 ```
 
 安装为本机命令后，可以不加 `uv run` 直接调用：
 
 ```bash
 uv tool install --editable .
-usst-electricity --help
+usst-e-fees --help
 ```
 
 生成配置文件：
 
 ```bash
-usst-electricity init-config
-usst-electricity where
+usst-e-fees init-config
+usst-e-fees where
 ```
 
 从抓包导入凭据。推荐导入 `GetDormElectricityFees` 这条请求的 `request_header_raw.txt`：
 
 ```bash
-usst-electricity auth-import "D:\path\to\request_header_raw.txt"
+usst-e-fees auth-import "D:\path\to\request_header_raw.txt"
 ```
 
 也可以手动保存：
 
 ```bash
-usst-electricity auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0"
+usst-e-fees auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0"
 ```
 
 测试查询：
 
 ```bash
-usst-electricity poll-once
+usst-e-fees poll-once
 ```
 
 带通知测试：
 
 ```bash
-usst-electricity notify-test
-usst-electricity poll-once --notify
+usst-e-fees notify-test
+usst-e-fees poll-once --notify
 ```
 
 开始监控：
 
 ```bash
-usst-electricity watch
+usst-e-fees watch
 ```
 
 ## 配置示例
@@ -71,8 +71,8 @@ usst-electricity watch
 
 | 系统 | 配置文件 |
 | --- | --- |
-| Windows | `%LOCALAPPDATA%\usst-electricity\config.yaml` |
-| Linux / VPS | `~/.config/usst-electricity/config.yaml` |
+| Windows | `%LOCALAPPDATA%\usst-e-fees\config.yaml` |
+| Linux / VPS | `~/.config/usst-e-fees/config.yaml` |
 
 阈值配置：
 
@@ -109,14 +109,14 @@ accounts:
 导入不同账号凭据：
 
 ```bash
-usst-electricity auth-import ".\main_request_header_raw.txt" --account main
-usst-electricity auth-import ".\roommate_request_header_raw.txt" --account roommate
+usst-e-fees auth-import ".\main_request_header_raw.txt" --account main
+usst-e-fees auth-import ".\roommate_request_header_raw.txt" --account roommate
 ```
 
 监控所有启用账号：
 
 ```bash
-usst-electricity watch --all
+usst-e-fees watch --all
 ```
 
 ## 抓包接口来源
