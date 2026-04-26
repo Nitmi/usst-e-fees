@@ -67,6 +67,14 @@ def _read_once(config: AppConfig, config_path: Path, account: AccountConfig) -> 
         return client.get_dorm_electricity_fees(account_id=account.id, account_name=account.name)
 
 
+def is_welink_sso_request(host: str, path: str, cookies: dict[str, str]) -> bool:
+    host = host.lower()
+    path = path.lower()
+    if "api.welink.huaweicloud.com" in host and "/ssoauth/v1/code" in path:
+        return True
+    return any(name in cookies for name in ("token", "cdn_token", "HWWAFSESID", "HWWAFSESTIME"))
+
+
 @app.command("init-config")
 def init_config(
     path: Annotated[Path | None, typer.Option(help="Config file path.")] = None,
@@ -114,15 +122,25 @@ def auth_import(
     headers, cookies = parse_raw_headers(headers_path)
     weaccess_token = get_case_insensitive(headers, "X-Weaccess-Token")
     hw_code = get_case_insensitive(headers, "x-hw-code")
+    host = get_case_insensitive(headers, "Host") or get_case_insensitive(headers, ":authority") or ""
+    path = get_case_insensitive(headers, ":path") or ""
+    welink_cookies = cookies if is_welink_sso_request(host, path, cookies) else None
+    dorm_cookies = None if welink_cookies else cookies
     if not weaccess_token and not hw_code and not cookies:
         console.print("[red]No X-Weaccess-Token, x-hw-code, or Cookie found in header file.[/red]")
         raise typer.Exit(1)
     store = _session_store(resolved_config_path, account)
-    store.update(weaccess_token=weaccess_token, hw_code=hw_code, cookies=cookies)
+    store.update(
+        weaccess_token=weaccess_token,
+        hw_code=hw_code,
+        cookies=dorm_cookies,
+        welink_cookies=welink_cookies,
+    )
     console.print(f"Auth imported for account: {account.id}")
     console.print(f"X-Weaccess-Token: {redact(weaccess_token)}")
     console.print(f"x-hw-code: {redact(hw_code)}")
-    console.print(f"Cookies: {', '.join(cookies.keys()) or '<empty>'}")
+    console.print(f"Dorm cookies: {', '.join((dorm_cookies or {}).keys()) or '<empty>'}")
+    console.print(f"WeLink cookies: {', '.join((welink_cookies or {}).keys()) or '<empty>'}")
 
 
 @app.command("auth-set")
@@ -130,13 +148,19 @@ def auth_set(
     weaccess_token: Annotated[str | None, typer.Option("--weaccess-token", help="Value of X-Weaccess-Token.")] = None,
     hw_code: Annotated[str | None, typer.Option("--hw-code", help="Value of x-hw-code.")] = None,
     cookie: Annotated[str | None, typer.Option("--cookie", help="Raw Cookie header.")] = None,
+    welink_cookie: Annotated[str | None, typer.Option("--welink-cookie", help="Raw WeLink Cookie header for ssoauth/v1/code.")] = None,
     account_id: Annotated[str, typer.Option("--account", "-a", help="Account ID.")] = "main",
     config_path: Annotated[Path | None, typer.Option("--config", "-c")] = None,
 ) -> None:
     config, resolved_config_path = load_config(config_path)
     account = _select_account(config, account_id)
     store = _session_store(resolved_config_path, account)
-    store.update(weaccess_token=weaccess_token, hw_code=hw_code, cookies=parse_cookie_header(cookie))
+    store.update(
+        weaccess_token=weaccess_token,
+        hw_code=hw_code,
+        cookies=parse_cookie_header(cookie),
+        welink_cookies=parse_cookie_header(welink_cookie),
+    )
     console.print(f"Auth saved for account: {account.id}")
 
 
@@ -155,8 +179,24 @@ def auth_show(
     table.add_row("X-Weaccess-Token", redact(tokens.weaccess_token))
     table.add_row("x-hw-code", redact(tokens.hw_code))
     table.add_row("cookies", ", ".join(tokens.cookies.keys()) or "<empty>")
+    table.add_row("welink_cookies", ", ".join(tokens.welink_cookies.keys()) or "<empty>")
     table.add_row("updated_at", str(tokens.updated_at or "<never>"))
     console.print(table)
+
+
+@app.command("auth-refresh")
+def auth_refresh(
+    account_id: Annotated[str, typer.Option("--account", "-a", help="Account ID.")] = "main",
+    config_path: Annotated[Path | None, typer.Option("--config", "-c")] = None,
+) -> None:
+    config, resolved_config_path = load_config(config_path)
+    account = _select_account(config, account_id)
+    session_store = _session_store(resolved_config_path, account)
+    with DormElectricityClient(config.http, session_store) as client:
+        code = client.refresh_auth_code()
+        client.refresh_identity()
+    console.print(f"Auth refreshed for account: {account.id}")
+    console.print(f"x-hw-code: {redact(code)}")
 
 
 @app.command("poll-once")

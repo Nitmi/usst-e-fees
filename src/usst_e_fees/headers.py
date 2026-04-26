@@ -12,9 +12,10 @@ def parse_raw_headers(path: Path) -> tuple[dict[str, str], dict[str, str]]:
         line = raw_line.strip()
         if not line or line.upper().startswith(("GET ", "POST ", "PUT ", "DELETE ")):
             continue
-        if ":" not in line:
+        parsed = split_header_line(line)
+        if parsed is None:
             continue
-        name, value = line.split(":", 1)
+        name, value = parsed
         name = name.strip()
         value = value.strip()
         if name.lower() == "cookie":
@@ -22,6 +23,17 @@ def parse_raw_headers(path: Path) -> tuple[dict[str, str], dict[str, str]]:
             continue
         headers[name] = value
     return headers, cookies
+
+
+def split_header_line(line: str) -> tuple[str, str] | None:
+    if ":" not in line:
+        return None
+    if line.startswith(":"):
+        index = line.find(":", 1)
+        if index == -1:
+            return None
+        return line[:index], line[index + 1 :]
+    return tuple(line.split(":", 1))
 
 
 def get_case_insensitive(headers: dict[str, str], name: str) -> str | None:

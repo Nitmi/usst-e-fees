@@ -26,6 +26,7 @@ class SessionStore:
         weaccess_token: str | None = None,
         hw_code: str | None = None,
         cookies: dict[str, str] | None = None,
+        welink_cookies: dict[str, str] | None = None,
     ) -> SessionTokens:
         tokens = self.load()
         if weaccess_token:
@@ -34,6 +35,8 @@ class SessionStore:
             tokens.hw_code = hw_code
         if cookies:
             tokens.cookies.update(cookies)
+        if welink_cookies:
+            tokens.welink_cookies.update(welink_cookies)
         self.save(tokens)
         return tokens
 

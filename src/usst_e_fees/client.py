@@ -56,6 +56,18 @@ class DormElectricityClient:
             headers["x-hw-code"] = self.tokens.hw_code
         return headers
 
+    def _welink_headers(self) -> dict[str, str]:
+        return {
+            "Accept": "*/*",
+            "Accept-Language": "zh-Hans-CN;q=1, en-CN;q=0.9",
+            "AppName": "WeLink",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Lang": "zh",
+            "User-Agent": "WorkPlace/7.52.16 (iPhone; iOS 26.4.2; Scale/3.00)",
+            "X-Cloud-Type": "1",
+            "X-Product-Type": "0",
+        }
+
     def _persist_response_session(self, response: httpx.Response) -> None:
         cookies = dict(response.cookies)
         if not cookies:
@@ -77,15 +89,63 @@ class DormElectricityClient:
         except ValueError as exc:
             raise ElectricityError(f"{method} {url} did not return JSON") from exc
 
+    def refresh_auth_code(self) -> str:
+        if not self.tokens.welink_cookies:
+            raise ElectricityError(
+                "身份认证失败，请重新导入 WeLink ssoauth/v1/code 请求头以支持自动刷新 x-hw-code"
+            )
+        response = httpx.post(
+            "https://api.welink.huaweicloud.com/mcloud/mag/ProxyForText/ssoauth/v1/code",
+            headers=self._welink_headers(),
+            cookies=self.tokens.welink_cookies,
+            timeout=self.http_config.timeout_seconds,
+        )
+        if response.status_code >= 400:
+            raise ElectricityError(
+                f"WeLink auth code refresh failed: HTTP {response.status_code}",
+                status_code=response.status_code,
+            )
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise ElectricityError("WeLink auth code refresh did not return JSON") from exc
+        code = data.get("code")
+        if not code:
+            raise ElectricityError("WeLink auth code refresh response did not contain code")
+        self.tokens = self.session_store.update(hw_code=str(code))
+        self.client.headers["x-hw-code"] = str(code)
+        return str(code)
+
+    def ensure_identity(self) -> None:
+        if not self.tokens.hw_code:
+            self.refresh_auth_code()
+        data = self.refresh_identity()
+        if data.get("Success") and data.get("Status") == 200:
+            return
+        self.refresh_auth_code()
+        data = self.refresh_identity()
+        if not data.get("Success") or data.get("Status") != 200:
+            message = data.get("Message") or data.get("Error") or "身份认证失败，请重新登录"
+            raise ElectricityError(str(message), status_code=data.get("Status"))
+
     def refresh_identity(self) -> Any:
         return self._json_request("GET", "/api/Authentication/GetCurrentUserIdentity", params={"ssid": ""})
 
     def get_dorm_electricity_fees(self, *, account_id: str, account_name: str) -> ElectricityReading:
+        self.ensure_identity()
         data = self._json_request(
             "GET",
             "/api/Voucher/GetDormElectricityFees",
             params={"IsLoadData": "false"},
         )
+        if should_refresh_identity(data):
+            self.refresh_auth_code()
+            self.refresh_identity()
+            data = self._json_request(
+                "GET",
+                "/api/Voucher/GetDormElectricityFees",
+                params={"IsLoadData": "false"},
+            )
         if not data.get("Success") or data.get("Status") != 200:
             status = data.get("Status")
             message = data.get("Message") or data.get("Error") or "Dorm electricity request failed"
@@ -116,3 +176,10 @@ def parse_number(value: str | None) -> float | None:
     if not match:
         return None
     return float(match.group(0))
+
+
+def should_refresh_identity(data: Any) -> bool:
+    if not isinstance(data, dict):
+        return False
+    message = str(data.get("Message") or data.get("Error") or "")
+    return data.get("Status") == 300 or "身份认证失败" in message or "重新登录" in message

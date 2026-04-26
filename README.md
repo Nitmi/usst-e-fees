@@ -40,10 +40,21 @@ usst-e-fees where
 usst-e-fees auth-import "D:\path\to\request_header_raw.txt"
 ```
 
+长期监控还需要导入 WeLink 的授权码刷新请求头。请在 Loon 抓包里找到这条请求并导入它的 `request_header_raw.txt`：
+
+```text
+POST https://api.welink.huaweicloud.com/mcloud/mag/ProxyForText/ssoauth/v1/code
+```
+
+```bash
+usst-e-fees auth-import "D:\path\to\ssoauth_request_header_raw.txt"
+usst-e-fees auth-refresh
+```
+
 也可以手动保存：
 
 ```bash
-usst-e-fees auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0"
+usst-e-fees auth-set --weaccess-token "X-Weaccess-Token" --hw-code "x-hw-code" --cookie "ASP.NET_SessionId=...;https=0" --welink-cookie "token=...;cdn_token=..."
 ```
 
 测试查询：
@@ -135,4 +146,4 @@ GET http://ssgl.usst.edu.cn/api/Voucher/GetDormElectricityFees?IsLoadData=false
 
 接口返回字段包括 `SurplusZMMoney`、`SurplusZM`、`SurplusKTMoney`、`SurplusKT`、`SSDZ`、`SSId` 等。
 
-WeLink 的 `x-hw-code` 和宿舍系统 Cookie 可能会过期；如果查询返回登录失效或 `Status=300`，重新抓包并执行 `auth-import`。
+WeLink 的 `x-hw-code` 和宿舍系统 Cookie 会过期；导入 `ssoauth/v1/code` 请求头后，工具会自动刷新 `x-hw-code` 和宿舍系统会话。如果 WeLink Cookie 也过期，再重新抓包并执行 `auth-import`。
