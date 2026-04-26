@@ -1,0 +1,32 @@
+[project]
+name = "usst-electricity"
+version = "0.1.0"
+description = "USST dorm electricity watcher and notifier"
+readme = "README.md"
+authors = [
+    { name = "Nitmi", email = "0@123778.xyz" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.13.3",
+    "pyyaml>=6.0.3",
+    "rich>=15.0.0",
+    "typer>=0.24.2",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+keywords = ["usst", "dorm", "electricity", "cli", "notification"]
+
+[project.scripts]
+usst-electricity = "usst_electricity.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.7,<0.12.0"]
+build-backend = "uv_build"
