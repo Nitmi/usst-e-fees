@@ -16,6 +16,9 @@ class SessionTokens(BaseModel):
     hw_code: str | None = None
     cookies: dict[str, str] = Field(default_factory=dict)
     welink_cookies: dict[str, str] = Field(default_factory=dict)
+    welink_refresh_token: str | None = None
+    welink_tenant_id: str | None = None
+    welink_third_auth_type: str = "3"
     updated_at: datetime | None = None
 
 

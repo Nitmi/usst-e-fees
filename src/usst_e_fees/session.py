@@ -27,6 +27,9 @@ class SessionStore:
         hw_code: str | None = None,
         cookies: dict[str, str] | None = None,
         welink_cookies: dict[str, str] | None = None,
+        welink_refresh_token: str | None = None,
+        welink_tenant_id: str | None = None,
+        welink_third_auth_type: str | None = None,
     ) -> SessionTokens:
         tokens = self.load()
         if weaccess_token:
@@ -37,6 +40,12 @@ class SessionStore:
             tokens.cookies.update(cookies)
         if welink_cookies:
             tokens.welink_cookies.update(welink_cookies)
+        if welink_refresh_token:
+            tokens.welink_refresh_token = welink_refresh_token
+        if welink_tenant_id:
+            tokens.welink_tenant_id = welink_tenant_id
+        if welink_third_auth_type:
+            tokens.welink_third_auth_type = welink_third_auth_type
         self.save(tokens)
         return tokens
 

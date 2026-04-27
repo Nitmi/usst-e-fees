@@ -3,6 +3,7 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError, version as metadata_version
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import parse_qs
 
 import typer
 from rich.console import Console
@@ -73,6 +74,12 @@ def is_welink_sso_request(host: str, path: str, cookies: dict[str, str]) -> bool
     if "api.welink.huaweicloud.com" in host and "/ssoauth/v1/code" in path:
         return True
     return any(name in cookies for name in ("token", "cdn_token", "HWWAFSESID", "HWWAFSESTIME"))
+
+
+def parse_form_file(path: Path) -> dict[str, str]:
+    raw = path.read_text(encoding="utf-8").strip()
+    parsed = parse_qs(raw, keep_blank_values=True)
+    return {key: values[-1] for key, values in parsed.items() if values}
 
 
 @app.command("init-config")
@@ -149,6 +156,9 @@ def auth_set(
     hw_code: Annotated[str | None, typer.Option("--hw-code", help="Value of x-hw-code.")] = None,
     cookie: Annotated[str | None, typer.Option("--cookie", help="Raw Cookie header.")] = None,
     welink_cookie: Annotated[str | None, typer.Option("--welink-cookie", help="Raw WeLink Cookie header for ssoauth/v1/code.")] = None,
+    welink_refresh_token: Annotated[str | None, typer.Option("--welink-refresh-token", help="Value of WeLink refresh_token.")] = None,
+    welink_tenant_id: Annotated[str | None, typer.Option("--welink-tenant-id", help="Value of WeLink tenantid.")] = None,
+    welink_third_auth_type: Annotated[str | None, typer.Option("--welink-third-auth-type", help="WeLink thirdAuthType, default is 3.")] = None,
     account_id: Annotated[str, typer.Option("--account", "-a", help="Account ID.")] = "main",
     config_path: Annotated[Path | None, typer.Option("--config", "-c")] = None,
 ) -> None:
@@ -160,8 +170,38 @@ def auth_set(
         hw_code=hw_code,
         cookies=parse_cookie_header(cookie),
         welink_cookies=parse_cookie_header(welink_cookie),
+        welink_refresh_token=welink_refresh_token,
+        welink_tenant_id=welink_tenant_id,
+        welink_third_auth_type=welink_third_auth_type,
     )
     console.print(f"Auth saved for account: {account.id}")
+
+
+@app.command("auth-import-loginreg")
+def auth_import_loginreg(
+    body_path: Annotated[Path, typer.Argument(help="Path to LoginReg request_body_raw from Loon capture.")],
+    account_id: Annotated[str, typer.Option("--account", "-a", help="Account ID.")] = "main",
+    config_path: Annotated[Path | None, typer.Option("--config", "-c")] = None,
+) -> None:
+    config, resolved_config_path = load_config(config_path)
+    account = _select_account(config, account_id)
+    form = parse_form_file(body_path)
+    refresh_token = form.get("refresh_token")
+    tenant_id = form.get("tenantid")
+    third_auth_type = form.get("thirdAuthType") or "3"
+    if not refresh_token or not tenant_id:
+        console.print("[red]No refresh_token or tenantid found in LoginReg request body.[/red]")
+        raise typer.Exit(1)
+    store = _session_store(resolved_config_path, account)
+    store.update(
+        welink_refresh_token=refresh_token,
+        welink_tenant_id=tenant_id,
+        welink_third_auth_type=third_auth_type,
+    )
+    console.print(f"LoginReg auth imported for account: {account.id}")
+    console.print(f"refresh_token: {redact(refresh_token)}")
+    console.print(f"tenantid: {redact(tenant_id)}")
+    console.print(f"thirdAuthType: {third_auth_type}")
 
 
 @app.command("auth-show")
@@ -180,6 +220,9 @@ def auth_show(
     table.add_row("x-hw-code", redact(tokens.hw_code))
     table.add_row("cookies", ", ".join(tokens.cookies.keys()) or "<empty>")
     table.add_row("welink_cookies", ", ".join(tokens.welink_cookies.keys()) or "<empty>")
+    table.add_row("welink_refresh_token", redact(tokens.welink_refresh_token))
+    table.add_row("welink_tenant_id", redact(tokens.welink_tenant_id))
+    table.add_row("welink_third_auth_type", str(tokens.welink_third_auth_type))
     table.add_row("updated_at", str(tokens.updated_at or "<never>"))
     console.print(table)
 
