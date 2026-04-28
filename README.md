@@ -89,16 +89,18 @@ usst-e-fees notify-test
 
 工具需要从已登录的 WeLink/宿舍电费页面请求中导入登录信息。
 
-用 Loon 抓包后，建议导入两条请求的 `request_header_raw.txt`：
+用 Loon 抓包后，建议导入三份信息：
 
 - 宿舍电费查询请求。
 - WeLink 授权刷新请求，路径里通常包含 `ssoauth/v1/code`。
+- WeLink 登录续期请求 `refresh/LoginReg` 的 `request_body_raw`。
 
 导入示例：
 
 ```bash
 usst-e-fees auth-import "D:\path\to\dorm_request_header_raw.txt"
 usst-e-fees auth-import "D:\path\to\welink_sso_request_header_raw.txt"
+usst-e-fees auth-import-loginreg "D:\path\to\loginreg_request_body_raw.txt"
 ```
 
 导入后测试刷新登录信息：
@@ -107,7 +109,9 @@ usst-e-fees auth-import "D:\path\to\welink_sso_request_header_raw.txt"
 usst-e-fees auth-refresh
 ```
 
-如果以后提示登录失效，重新抓包并再次执行上面的 `auth-import`。
+这样配置后，工具会优先自动续期 WeLink 登录，再自动换新的授权码，通常可以明显减少后续重新抓包次数。
+
+如果以后仍然提示登录失效，再重新抓包并再次执行上面的导入命令。
 
 ## 查询和监控
 
@@ -199,7 +203,7 @@ usst-e-fees poll-once --notify
 
 ### 为什么过一段时间提示登录失效？
 
-登录信息会过期。重新用 Loon 抓包并导入请求头即可。
+登录信息会过期。`0.1.1` 起已经支持用 `refresh/LoginReg` 自动续期，所以维护频率会比以前低很多；如果 WeLink 的长期登录信息本身也失效了，再重新用 Loon 抓包并重新导入即可。
 
 ## 联系方式
 

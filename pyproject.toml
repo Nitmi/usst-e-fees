@@ -1,6 +1,6 @@
 [project]
 name = "usst-e-fees"
-version = "0.1.0"
+version = "0.1.1"
 description = "USST dorm electricity fees watcher and notifier"
 readme = "README.md"
 authors = [
